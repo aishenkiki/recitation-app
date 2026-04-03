@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>课文背诵助手 - 三年级下册</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container { max-width: 600px; margin: 0 auto; }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 { font-size: 24px; margin-bottom: 8px; }
+        .header p { opacity: 0.9; font-size: 14px; }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        
+        .card-title {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .card-title .step {
+            background: #667eea;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        .textbook-list { display: flex; flex-direction: column; gap: 12px; }
+        
+        .textbook-item {
+            padding: 16px;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .textbook-item:hover { border-color: #667eea; background: #f8f6ff; }
+        .textbook-item.selected { border-color: #667eea; background: #667eea; color: white; }
+        .textbook-item .title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .textbook-item .subtitle { font-size: 13px; opacity: 0.7; }
+        
+        .paragraph-list { display: flex; flex-wrap: wrap; gap: 10px; }
+        
+        .paragraph-btn {
+            padding: 10px 18px;
+            border: 2px solid #eee;
+            border-radius: 20px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .paragraph-btn:hover { border-color: #667eea; }
+        .paragraph-btn.selected { background: #667eea; border-color: #667eea; color: white; }
+        
+        .original-text {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            font-size: 16px;
+            line-height: 2;
+            color: #333;
+        }
+        
+        .record-container {
+            text-align: center;
+            padding: 30px 0;
+        }
+        
+        .record-btn {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            transition: all 0.3s;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        .record-btn.ready {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+        }
+        
+        .record-btn.recording {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            box-shadow: 0 10px 40px rgba(231, 76, 60, 0.4);
+            animation: pulse 1.5s infinite;
+        }
+        
+        .record-btn.processing {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            box-shadow: 0 10px 40px rgba(243, 156, 18, 0.4);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+        
+        .record-btn svg {
+            width: 48px;
+            height: 48px;
+            fill: white;
+        }
+        
+        .record-btn .status {
+            color: white;
+            font-size: 12px;
+            margin-top: 8px;
+            font-weight: 600;
+        }
+        
+        .record-hint {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .record-hint.active { color: #e74c3c; font-weight: 600; }
+        .record-hint.success { color: #27ae60; font-weight: 600; }
+        .record-hint.error { color: #e74c3c; }
+        .record-hint.warning { color: #f39c12; }
+        
+        .transcribed-text {
+            background: #e8f5e9;
+            border-radius: 12px;
+            padding: 20px;
+            font-size: 16px;
+            line-height: 1.8;
+            min-height: 80px;
+            text-align: left;
+            border: 2px solid #a5d6a7;
+        }
+        
+        .transcribed-text:empty::before {
+            content: '等待录音识别结果...';
+            color: #999;
+        }
+        
+        .result-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .result-stat {
+            text-align: center;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+        
+        .result-stat .num {
+            font-size: 28px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .result-stat .num.error { color: #e74c3c; }
+        .result-stat .label { font-size: 13px; color: #666; margin-top: 4px; }
+        
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 16px;
+        }
+        
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5568d3; }
+        .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-secondary { background: #f0f0f0; color: #666; }
+        .btn-secondary:hover { background: #e0e0e0; }
+        
+        .btn-group { display: flex; gap: 12px; }
+        .btn-group .btn { flex: 1; margin-top: 0; }
+        
+        .hidden { display: none !important; }
+        
+        .error-detail {
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #fff;
+            border-radius: 8px;
+            border-left: 4px solid #e74c3c;
+        }
+        
+        .error-detail .label { font-weight: 600; color: #333; margin-bottom: 8px; }
+        .error-detail .original-text { background: #fdeaea; padding: 8px 12px; border-radius: 6px; margin-bottom: 4px; }
+        .error-detail .recited-text { background: #e8f8f0; padding: 8px 12px; border-radius: 6px; }
+        
+        .success-msg {
+            text-align: center;
+            padding: 40px 20px;
+            color: #27ae60;
+        }
+        
+        .success-msg .icon { font-size: 48px; margin-bottom: 16px; }
+        .success-msg .text { font-size: 18px; font-weight: 600; }
+        
+        .reset-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .reset-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .wave-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            height: 40px;
+            margin-bottom: 10px;
+        }
+        
+        .wave-bar {
+            width: 4px;
+            background: #667eea;
+            border-radius: 2px;
+            animation: wave 1s ease-in-out infinite;
+        }
+        
+        .wave-bar:nth-child(1) { height: 10px; animation-delay: 0s; }
+        .wave-bar:nth-child(2) { height: 20px; animation-delay: 0.1s; }
+        .wave-bar:nth-child(3) { height: 30px; animation-delay: 0.2s; }
+        .wave-bar:nth-child(4) { height: 20px; animation-delay: 0.3s; }
+        .wave-bar:nth-child(5) { height: 10px; animation-delay: 0.4s; }
+        
+        @keyframes wave {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(1.5); }
+        }
+        
+        .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid white;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📖 课文背诵助手</h1>
+            <p>人教版三年级下册 · 课后必背篇目</p>
+            <p style="font-size:12px;opacity:0.8;margin-top:5px;">🚀 讯飞语音识别驱动</p>
+        </div>
+        
+        <!-- 步骤1: 选择课文 -->
+        <div class="card" id="step1">
+            <div class="card-title">
+                <span class="step">1</span>
+                选择要背诵的课文
+            </div>
+            <div class="textbook-list" id="textbookList"></div>
+            <button class="btn btn-primary" id="nextStep1Btn" disabled onclick="goToStep(2)">下一步</button>
+        </div>
+        
+        <!-- 步骤2: 选择段落 -->
+        <div class="card hidden" id="step2">
+            <div class="card-title">
+                <span class="step">2</span>
+                选择背诵段落
+            </div>
+            <div class="paragraph-list" id="paragraphList"></div>
+            <div class="original-text" id="originalText"></div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="goToStep(1)">上一步</button>
+                <button class="btn btn-primary" id="nextStep2Btn" disabled onclick="goToStep(3)">开始背诵</button>
+            </div>
+        </div>
+        
+        <!-- 步骤3: 录音背诵 -->
+        <div class="card hidden" id="step3">
+            <div class="card-title">
+                <span class="step">3</span>
+                请开始背诵
+            </div>
+            <div class="original-text" id="reciteOriginalText"></div>
+            
+            <div class="record-container">
+                <div class="wave-container hidden" id="waveContainer">
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                </div>
+                
+                <button class="record-btn ready" id="recordBtn" onclick="toggleRecording()">
+                    <svg id="micIcon" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15a.998.998 0 00-.98-.85c-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/></svg>
+                    <span class="status" id="btnStatus">点击录音</span>
+                </button>
+                
+                <p class="record-hint" id="recordHint">🎤 点击上方按钮开始录音背诵<br>录音结束后会自动识别</p>
+            </div>
+            
+            <div class="transcribed-text" id="transcribedText"></div>
+            
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="goToStep(2)">重新选择</button>
+                <button class="btn btn-primary" id="compareBtn" disabled onclick="compareTexts()">比对结果</button>
+            </div>
+        </div>
+        
+        <!-- 步骤4: 结果展示 -->
+        <div class="card hidden" id="step4">
+            <div class="card-title">
+        <span style="color: #27ae60;">✓</span> 比对结果
+            </div>
+            
+            <div class="result-summary">
+                <div class="result-stat">
+                    <div class="num" id="accuracyNum">--%</div>
+                    <div class="label">正确率</div>
+                </div>
+                <div class="result-stat">
+                    <div class="num error" id="errorCount">0</div>
+                    <div class="label">错误数</div>
+                </div>
+                <div class="result-stat">
+                    <div class="num" id="totalCount">0</div>
+                    <div class="label">总字数</div>
+                </div>
+            </div>
+            
+            <div id="errorDetails"></div>
+            
+            <div class="reset-link">
+                <a onclick="resetApp()">← 再来一次</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 课文数据
+        const textbookData = {
+            "绝句": { author: "唐·杜甫", type: "古诗", paragraphs: [{ id: 1, text: "迟日江山丽，春风花草香。泥融飞燕子，沙暖睡鸳鸯。" }] },
+            "惠崇春江晚景": { author: "宋·苏轼", type: "古诗", paragraphs: [{ id: 1, text: "竹外桃花三两枝，春江水暖鸭先知。蒌蒿满地芦芽短，正是河豚欲上时。" }] },
+            "三衢道中": { author: "宋·曾几", type: "古诗", paragraphs: [{ id: 1, text: "梅子黄时日日晴，小溪泛尽却山行。绿阴不减来时路，添得黄鹂四五声。" }] },
+            "守株待兔": { author: "文言文", type: "古文", paragraphs: [{ id: 1, text: "宋人有耕者。田中有株，兔走触株，折颈而死。因释其耒而守株，冀复得兔。兔不可复得，而身为宋国笑。" }] },
+            "燕子": { author: "郑振铎", type: "课文", paragraphs: [
+                { id: 1, text: "一身乌黑的羽毛，一对轻快有力的翅膀，加上剪刀似的尾巴，凑成了那样可爱的活泼的小燕子。" },
+                { id: 2, text: "二三月间，微风微微地吹拂着，如毛的细雨由天上洒落着，千条万条的柔柳，红的白的黄的花，青的草，绿的叶，都像赶集似的聚拢来，形成了烂漫无比的春天。这时候，那些小燕子，那么伶俐可爱的小燕子，也由南方飞来，加入这光彩夺目的图画中，为春光平添了许多的生趣。" },
+                { id: 3, text: "小燕子带了它的双剪似的尾，在微风细雨中，或在阳光满地时，斜飞于旷亮无比的天空之上，唧的一声，已由这里稻田上，飞到了那边的高柳之下了。" }
+            ]},
+            "荷花": { author: "叶圣陶", type: "课文", paragraphs: [
+                { id: 1, text: "荷花已经开了不少了。荷叶挨挨挤挤的，像一个个碧绿的大圆盘。白荷花在这些大圆盘之间冒出来。有的才展开两三片花瓣儿。有的花瓣儿全展开了，露出嫩黄色的小莲蓬。有的还是花骨朵儿，看起来饱胀得马上要破裂似的。" },
+                { id: 2, text: "这么多白荷花，一朵有一朵的姿势。看看这一朵，很美；看看那一朵，也很美。如果把眼前的这一池荷花看作一大幅活的画，那画家的本领可真了不起。" },
+                { id: 3, text: "我忽然觉得自己仿佛就是一朵荷花，穿着雪白的衣裳，站在阳光里。一阵微风吹过来，我就翩翩起舞，雪白的衣裳随风飘动。不光是我一朵，一池的荷花都在舞蹈。风过了，我停止了舞蹈，静静地站在那儿。蜻蜓飞过来，告诉我清早飞行的快乐。小鱼在脚下游过，告诉我昨夜做的好梦……" }
+            ]},
+            "花钟": { author: "", type: "课文", paragraphs: [{ id: 1, text: "鲜花朵朵，争奇斗艳，芬芳迷人。要是我们留心观察，就会发现，一天之内，不同的花开放的时间是不同的。凌晨四点，牵牛花吹起了紫色的小喇叭；五点左右，艳丽的蔷薇绽开了笑脸；七点，睡莲从梦中醒来；中午十二点左右，午时花开放了；下午三点，万寿菊欣然怒放；傍晚六点，烟草花在暮色中苏醒；月光花在七点左右舒展开自己的花瓣；夜来香在晚上八点开花；昙花却在九点左右含笑一现……" }] },
+            "火烧云": { author: "萧红", type: "课文", paragraphs: [
+                { id: 1, text: "这地方的火烧云变化极多，一会儿红彤彤的，一会儿金灿灿的，一会儿半紫半黄，一会儿半灰半百合色。葡萄灰、梨黄、茄子紫，这些颜色天空都有，还有些说也说不出来、见也没见过的颜色。" },
+                { id: 2, text: "一会儿，天空出现一匹马，马头向南，马尾向西。马是跪着的，像等人骑上它的背，它才站起来似的。过了两三秒钟，那匹马大起来了，腿伸开了，脖子也长了，尾巴可不见了。看的人正在寻找马尾巴，那匹马变模糊了。" },
+                { id: 3, text: "忽然又来了一条大狗。那条狗十分凶猛，在向前跑，后边似乎还跟着好几条小狗。跑着跑着，小狗不知哪里去了，大狗也不见了。" },
+                { id: 4, text: "接着又来了一头大狮子，跟庙门前的石头狮子一模一样，也那么大，也那样蹲着，很威武很镇静地蹲着。可是一转眼就变了，想要看那头狮子，但是已经看不清了，再也找不着了。" }
+            ]}
+        };
+        
+        // 状态
+        let currentStep = 1;
+        let selectedText = null;
+        let selectedParagraph = null;
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let mediaStream = null;
+        
+        // 初始化课文列表
+        function initTextbookList() {
+            const list = document.getElementById('textbookList');
+            list.innerHTML = '';
+            
+            Object.entries(textbookData).forEach(([title, data]) => {
+                const item = document.createElement('div');
+                item.className = 'textbook-item';
+                item.innerHTML = `<div class="title">${data.author ? data.author + ' · ' : ''}${title}</div><div class="subtitle">${data.type} · ${data.paragraphs.length}段</div>`;
+                item.onclick = () => selectText(title, item);
+                list.appendChild(item);
+            });
+        }
+        
+        function selectText(title, element) {
+            document.querySelectorAll('.textbook-item').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedText = title;
+            document.getElementById('nextStep1Btn').disabled = false;
+        }
+        
+        function initParagraphSelect() {
+            const list = document.getElementById('paragraphList');
+            list.innerHTML = '';
+            const data = textbookData[selectedText];
+            
+            if (data.paragraphs.length === 1) {
+                list.innerHTML = '<p style="color:#666;font-size:14px;">这篇只有一段，直接背诵全文</p>';
+                selectedParagraph = data.paragraphs[0];
+                document.getElementById('originalText').innerHTML = data.paragraphs[0].text;
+                document.getElementById('nextStep2Btn').disabled = false;
+                document.getElementById('reciteOriginalText').innerHTML = document.getElementById('originalText').innerHTML;
+            } else {
+                data.paragraphs.forEach(p => {
+                    const btn = document.createElement('button');
+                    btn.className = 'paragraph-btn';
+                    btn.textContent = `第${toChineseNum(p.id)}段`;
+                    btn.onclick = () => selectParagraph(p, btn);
+                    list.appendChild(btn);
+                });
+                document.getElementById('originalText').innerHTML = '<span style="color:#999;">请先选择要背诵的段落</span>';
+            }
+        }
+        
+        function selectParagraph(paragraph, btn) {
+            document.querySelectorAll('.paragraph-btn').forEach(el => el.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedParagraph = paragraph;
+            document.getElementById('originalText').innerHTML = paragraph.text;
+            document.getElementById('nextStep2Btn').disabled = false;
+            document.getElementById('reciteOriginalText').innerHTML = paragraph.text;
+        }
+        
+        function toChineseNum(num) {
+            const chinese = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+            return num <= 10 ? chinese[num] : num.toString();
+        }
+        
+        function goToStep(step) {
+            document.querySelectorAll('.card').forEach(card => card.classList.add('hidden'));
+            document.getElementById(`step${step}`).classList.remove('hidden');
+            currentStep = step;
+            
+            if (step === 2) initParagraphSelect();
+            else if (step === 3) initRecorder();
+        }
+        
+        // 初始化录音器
+        async function initRecorder() {
+            const btn = document.getElementById('recordBtn');
+            const hint = document.getElementById('recordHint');
+            const btnStatus = document.getElementById('btnStatus');
+            
+            try {
+                // 检查浏览器支持
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('您的浏览器不支持录音功能');
+                }
+                
+                hint.innerHTML = '🎤 点击上方按钮开始录音背诵';
+                btnStatus.textContent = '点击录音';
+                btn.className = 'record-btn ready';
+                
+            } catch (e) {
+                btn.className = 'record-btn error';
+                btnStatus.textContent = '不支持';
+                hint.innerHTML = '❌ ' + e.message;
+            }
+        }
+        
+        // 切换录音
+        async function toggleRecording() {
+            const btn = document.getElementById('recordBtn');
+            const hint = document.getElementById('recordHint');
+            const btnStatus = document.getElementById('btnStatus');
+            const waveContainer = document.getElementById('waveContainer');
+            
+            if (isRecording) {
+                // 停止录音
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                }
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                }
+                
+                isRecording = false;
+                btn.className = 'record-btn processing';
+                btnStatus.innerHTML = '<div class="loading-spinner"></div>识别中';
+                hint.innerHTML = '🔄 正在识别中，请稍候...';
+                hint.className = 'record-hint warning';
+                waveContainer.classList.add('hidden');
+                
+            } else {
+                // 开始录音
+                try {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            sampleRate: 16000
+                        } 
+                    });
+                    
+                    audioChunks = [];
+                    mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'audio/webm' });
+                    
+                    mediaRecorder.ondataavailable = (e) => {
+                        if (e.data.size > 0) {
+                            audioChunks.push(e.data);
+                        }
+                    };
+                    
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        await sendToServer(audioBlob);
+                    };
+                    
+                    mediaRecorder.start();
+                    isRecording = true;
+                    
+                    btn.className = 'record-btn recording';
+                    btnStatus.textContent = '录音中';
+                    hint.innerHTML = '🎤 <strong>正在录音...</strong><br>请开始背诵，完成后再次点击按钮停止';
+                    hint.className = 'record-hint active';
+                    waveContainer.classList.remove('hidden');
+                    
+                } catch (e) {
+                    console.error('录音错误:', e);
+                    hint.innerHTML = '❌ 无法访问麦克风：' + e.message + '<br>请允许浏览器使用麦克风权限';
+                    hint.className = 'record-hint error';
+                }
+            }
+        }
+        
+        // 发送到服务器识别
+        async function sendToServer(audioBlob) {
+            const hint = document.getElementById('recordHint');
+            const btn = document.getElementById('recordBtn');
+            const btnStatus = document.getElementById('btnStatus');
+            const transcribedText = document.getElementById('transcribedText');
+            
+            try {
+                // 转换为 base64
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const base64Audio = e.target.result.split(',')[1];
+                        
+                        const response = await fetch('/api/recognize', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ audio: base64Audio })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success && result.text) {
+                            transcribedText.textContent = result.text;
+                            document.getElementById('compareBtn').disabled = false;
+                            btn.className = 'record-btn ready';
+                            btnStatus.textContent = '重新录音';
+                            hint.innerHTML = '✅ 识别完成！点击"比对结果"查看';
+                            hint.className = 'record-hint success';
+                        } else {
+                            throw new Error(result.error || '识别结果为空');
+                        }
+                    } catch (err) {
+                        handleError(err);
+                    }
+                };
+                
+                reader.onerror = () => handleError(new Error('读取音频失败'));
+                reader.readAsDataURL(audioBlob);
+                
+            } catch (e) {
+                handleError(e);
+            }
+            
+            function handleError(err) {
+                console.error('识别错误:', err);
+                btn.className = 'record-btn ready';
+                btnStatus.textContent = '点击录音';
+                hint.innerHTML = '❌ 识别失败：' + err.message + '<br>请重试';
+                hint.className = 'record-hint error';
+            }
+        }
+        
+        function compareTexts() {
+            const transcribed = document.getElementById('transcribedText').textContent.trim();
+            if (!transcribed) {
+                alert('请先录音背诵内容');
+                return;
+            }
+            
+            const original = selectedParagraph.text;
+            const result = compareText(original, transcribed);
+            
+            document.getElementById('accuracyNum').textContent = result.accuracy + '%';
+            document.getElementById('errorCount').textContent = result.errorCount;
+            document.getElementById('totalCount').textContent = result.totalChars;
+            
+            const errorDetailsEl = document.getElementById('errorDetails');
+            if (result.errors.length === 0) {
+                errorDetailsEl.innerHTML = `
+                    <div class="success-msg">
+                        <div class="icon">🎉</div>
+                        <div class="text">太棒了！背诵完全正确！</div>
+                    </div>`;
+            } else {
+                let html = '<div class="card-title" style="margin-top:20px;"><span style="color:#e74c3c;">✗</span> 错误详情（共 ' + result.errors.length + ' 处）</div>';
+                result.errors.forEach((err, idx) => {
+                    html += `<div class="error-detail">
+                        <div class="label">位置 ${idx + 1}：</div>
+                        <div class="original-text">📖 原文：<strong>${err.original}</strong></div>
+                        <div class="recited-text">🎤 你背的：<strong>${err.recited}</strong></div>
+                    </div>`;
+                });
+                errorDetailsEl.innerHTML = html;
+            }
+            
+            goToStep(4);
+        }
+        
+        // 文本比对
+        function compareText(original, recited) {
+            const normalizeText = (text) => text.replace(/[，。！？、；：""''【】《》（）\s]/g, '');
+            
+            const origChars = normalizeText(original).split('');
+            const recitChars = normalizeText(recited).split('');
+            
+            const lcs = findLCS(origChars, recitChars);
+            const errors = [];
+            let correctCount = 0;
+            
+            let origIdx = 0, recitIdx = 0, lcsIdx = 0;
+            
+            while (origIdx < origChars.length || recitIdx < recitChars.length) {
+                if (lcsIdx < lcs.length) {
+                    while (origIdx < origChars.length && origChars[origIdx] === lcs[lcsIdx]) { correctCount++; origIdx++; }
+                    while (recitIdx < recitChars.length && recitChars[recitIdx] === lcs[lcsIdx]) { recitIdx++; }
+                    if (origIdx < origChars.length && recitIdx < recitChars.length && origChars[origIdx] === lcs[lcsIdx]) {
+                        lcsIdx++;
+                    } else if (recitIdx < recitChars.length && recitChars[recitIdx] === lcs[lcsIdx]) {
+                        lcsIdx++;
+                    } else {
+                        let origPart = '', recitPart = '';
+                        while (origIdx < origChars.length && (lcsIdx >= lcs.length || origChars[origIdx] !== lcs[lcsIdx])) { origPart += origChars[origIdx]; origIdx++; }
+                        while (recitIdx < recitChars.length && (lcsIdx >= lcs.length || recitChars[recitIdx] !== lcs[lcsIdx])) { recitPart += recitChars[recitIdx]; recitIdx++; }
+                        if (origPart || recitPart) errors.push({ original: origPart || '（漏背）', recited: recitPart || '（多背）' });
+                        if (lcsIdx < lcs.length) { correctCount++; origIdx++; recitIdx++; lcsIdx++; }
+                    }
+                } else {
+                    let origPart = '', recitPart = '';
+                    while (origIdx < origChars.length) { origPart += origChars[origIdx]; origIdx++; }
+                    while (recitIdx < recitChars.length) { recitPart += recitChars[recitIdx]; recitIdx++; }
+                    if (origPart || recitPart) errors.push({ original: origPart || '（漏背）', recited: recitPart || '（多背）' });
+                }
+            }
+            
+            const accuracy = origChars.length > 0 ? Math.round((correctCount / origChars.length) * 100) : 0;
+            return { accuracy, errorCount: errors.length, totalChars: origChars.length, errors };
+        }
+        
+        function findLCS(arr1, arr2) {
+            const m = arr1.length, n = arr2.length;
+            const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+            for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) dp[i][j] = arr1[i-1] === arr2[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
+            const lcs = [];
+            let i = m, j = n;
+            while (i > 0 && j > 0) {
+                if (arr1[i-1] === arr2[j-1]) { lcs.unshift(arr1[i-1]); i--; j--; }
+                else if (dp[i-1][j] > dp[i][j-1]) i--;
+                else j--;
+            }
+            return lcs;
+        }
+        
+        function resetApp() {
+            currentStep = 1;
+            selectedText = null;
+            selectedParagraph = null;
+            audioChunks = [];
+            isRecording = false;
+            
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+            }
+            
+            document.getElementById('transcribedText').textContent = '';
+            document.getElementById('compareBtn').disabled = true;
+            document.getElementById('nextStep1Btn').disabled = true;
+            document.getElementById('nextStep2Btn').disabled = true;
+            document.getElementById('waveContainer').classList.add('hidden');
+            
+            document.querySelectorAll('.textbook-item').forEach(el => el.classList.remove('selected'));
+            document.querySelectorAll('.paragraph-btn').forEach(el => el.classList.remove('selected'));
+            
+            goToStep(1);
+        }
+        
+        window.onload = () => initTextbookList();
+    </script>
+</body>
+</html>
